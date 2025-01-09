@@ -10,7 +10,7 @@ from src.Chat import *
 from src.model_loader import load_ctc_model
 import os
 
-os.environ["OPENAI_API_KEY"] = "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"
+os.environ["OPENAI_API_KEY"] = "api_key"
 
 if not torch.backends.mps.is_available():
     device = torch.device("cpu")
