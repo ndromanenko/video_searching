@@ -1,0 +1,79 @@
+[project]
+name = "course-work"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dspy>=2.6.12",
+    "langchain>=0.3.20",
+    "langchain-community>=0.3.19",
+    "langchain-openai>=0.3.8",
+    "loguru>=0.7.3",
+    "moviepy>=2.1.2",
+    "streamlit>=1.43.2",
+    "torch>=2.6.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.0",
+]
+
+[tool.ruff.lint]
+select = ["F",      # PyFlakes
+          "I",      # isort
+          "UP",     # PyUpgrade
+          "YTT",    # flake8-2020
+          "ASYNC",  # flake8-async
+          "ASYNC1", # flake8-trio
+          "B",      # bugbear
+          "C4",     # flake8-comprehensions
+          "T10",    # flake8-debugger
+          "EXE",    # flake8-executable
+          "INP",    # flake8-no-pep420
+          "PIE",    # flake8-pie
+          "PYI",    # flake8-pyi
+          "PT",     # flake8-pytest
+          "Q",      # flake8-quotes
+          "RSE",    # flake8-raise
+          "SLF",    # flake8-self
+          "SIM",    # flake8-simplify
+          "TID",    # flake8-tidy-imports
+          "TCH",    # flake8-type-checking
+          "INT",    # flake8-gettext
+          "ERA",    # flake8-eradicate
+          "PGH",    # pygrep-hooks
+          "FLY",    # flynt
+          "NPY",    # NumPy-specific rules
+          "PERF",   # Perflint
+          "FURB",   # Refurb
+          "LOG",    # flake8-logging
+          "RUF",    # Ruff-specific rules
+          "S",      # flake8-bandit
+          "T20",    # flake8-print
+          "ARG",    # flake8-unused-arguments
+
+          "DTZ",    # flake8-datetimez 
+          "PD",     # pandas-vet
+
+          "C90",    # McCabe
+          "ANN",    # flake8-annotations
+          "FBT",    # flake8-boolean-trap
+          "RET",    # flake8-return
+          "PTH",    # flake8-use-pathlib
+          "TD",     # flake8-todo
+          "FIX",    # flake8-fixme
+
+          "N",      # pep8-naming
+          "D",      # flake8-docstrings
+          "BLE",    # flake8-blind-except
+          "A",      # builtins
+          "SLOT",   # flake8-slot
+          "PL",     # pylint
+
+          "W292"    # newline at end of file
+]
+ignore = [
+    "D203", "D212", "D100", "D101", "ANN201", "D104", "D106"
+]

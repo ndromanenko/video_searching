@@ -1,0 +1,69 @@
+import gc
+import streamlit as st
+import torch
+from pathlib import Path
+from src.stt_model import STTModel
+
+
+class AudioProcessor:
+    def __init__(self, model: STTModel, directory: str) -> None:
+        """
+        Initialize the AudioProcessor with the specified model and directory.
+
+        Args:
+            model (STTModel): The speech-to-text model to use for transcription.
+            directory (str): The directory where audio files are located.
+
+        """
+        self.model = model
+        self.directory = directory
+
+    def transcribe_files(self) -> list:
+        """
+        Transcribe audio files in the specified directory using the provided model.
+
+        This method processes audio files in batches, transcribes them, and returns
+        a list of dictionaries containing the time and transcribed text.
+
+        Returns:
+            list: A list of dictionaries with 'time' and 'text' keys for each transcribed audio.
+            
+        """
+        directory = Path(self.directory)
+
+        batch_size = 16
+        chunks_time_text = {}
+
+        audio_files = [f for f in directory.iterdir() if f.is_file() and not f.name.startswith(".")]
+
+        total_batches = len(audio_files) // batch_size + (1 if len(audio_files) % batch_size > 0 else 0)
+        progress_text = "Second stage in progress. Please wait."
+        progress_bar = st.progress(0, text=progress_text)
+
+        for i in range(0, len(audio_files), batch_size):
+            batch_files = audio_files[i:i + batch_size]
+            file_paths = [str(audio) for audio in batch_files]
+
+            results = self.model.transcribe(file_paths)
+
+            for audio, result in zip(batch_files, results, strict=True):
+                times = audio.stem.split("_")[0]
+                chunks_time_text[times] = result
+
+            torch.mps.empty_cache()
+            gc.collect()
+
+            progress_percentage = (i // batch_size + 1) / total_batches
+            progress_bar.progress(progress_percentage)
+
+        progress_bar.empty()  
+
+        chunks = []
+        for time, text in chunks_time_text.items():
+            entry = {
+                "time": time,
+                "text": text
+            }
+            chunks.append(entry)
+        
+        return chunks
