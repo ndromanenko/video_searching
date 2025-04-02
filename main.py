@@ -2,12 +2,12 @@ import openai
 import os
 import streamlit as st
 import torch 
-from stt_model import STTModel
-from QA import QA
+from src.stt_model import STTModel
+from src.QA import QA
 import tempfile
-from retrieval import Retrieval
-from audio_processor import AudioProcessor
-from video_processor import VideoProcessor
+from src.retrieval import Retrieval
+from src.audio_processor import AudioProcessor
+from src.video_processor import VideoProcessor
 from dotenv import load_dotenv
 
 
@@ -32,14 +32,14 @@ button_style = """
         """
 st.markdown(button_style, unsafe_allow_html=True)
 
-if not torch.backends.mps.is_available():
-    device = torch.device("cpu")
-else:
-    device = torch.device("mps")
+# if not torch.backends.mps.is_available():
+#     device = torch.device("cpu")
+# else:
+#     device = torch.device("mps")
 
 @st.cache_resource
 def load_model():
-    return STTModel(model="ctc", fp16_encoder=True, device=device)
+    return STTModel(model="ctc", fp16_encoder=True, device="cpu")
 
 @st.cache_resource
 def load_pipeline():

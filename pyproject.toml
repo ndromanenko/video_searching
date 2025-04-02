@@ -1,19 +1,24 @@
 [project]
-name = "course-work"
+name = "video-searching"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "dspy>=2.6.12",
-    "langchain>=0.3.20",
-    "langchain-community>=0.3.19",
+    "dspy>=2.6.16",
+    "faiss-cpu>=1.10.0",
+    "gigaam",
+    "langchain>=0.3.22",
+    "langchain-community>=0.3.20",
     "langchain-openai>=0.3.8",
     "loguru>=0.7.3",
     "moviepy>=2.1.2",
-    "streamlit>=1.43.2",
-    "torch>=2.6.0",
+    "streamlit>=1.44.1",
+    "torch>=2.5.1",
 ]
+
+[tool.uv.sources]
+gigaam = { git = "https://github.com/salute-developers/GigaAM.git" }
 
 [dependency-groups]
 dev = [

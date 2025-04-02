@@ -1,5 +1,5 @@
 import dspy
-from retrieval import Retrieval
+from src.retrieval import Retrieval
 
 # class GenerateSearchQuery(dspy.Signature):
 #     question: str = dspy.InputField()
