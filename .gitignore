@@ -11,3 +11,7 @@ wheels/
 
 # Other files 
 .env
+model
+test.ipynb
+ctc_model_config.yaml
+ctc_model_weights.ckpt

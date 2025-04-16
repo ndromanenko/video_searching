@@ -1,6 +1,6 @@
 import gc
 import time
-from moviepy.audio.io.AudioFileClip import AudioFileClip
+from moviepy.editor import AudioFileClip
 import streamlit as st
 
 
@@ -44,7 +44,7 @@ class VideoProcessor:
         duration = audioclip.duration
         audioclip.close()
 
-        chunk_duration = 50 
+        chunk_duration = 50
         chunks = int(duration / chunk_duration) + 1
 
         progress_text = "First stage in progress. Please wait."

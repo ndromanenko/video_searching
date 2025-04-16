@@ -32,7 +32,7 @@ class Retrieval:
             metadata: List of metadata dictionaries for each text.
             
         """
-        return self.retriever.add_texts(texts=texts, metadatas=metadata)
+        self.retriever.add_texts(texts=texts, metadatas=metadata)
 
     def search(self, query: str, filter_criteria: dict | None = None) -> list[tuple[str, float]]:
         """

@@ -53,16 +53,13 @@ class AudioProcessor:
             torch.mps.empty_cache()
             gc.collect()
 
-            progress_percentage = (i // batch_size + 1) / total_batches
-            progress_bar.progress(progress_percentage)
-
         progress_bar.empty()  
 
         chunks = []
         for time, text in chunks_time_text.items():
             entry = {
                 "time": time,
-                "text": text
+                "text": text.text
             }
             chunks.append(entry)
         

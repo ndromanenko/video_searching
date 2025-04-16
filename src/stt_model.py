@@ -1,32 +1,67 @@
-import gigaam
 import torch
+import torchaudio
+from nemo.collections.asr.models import EncDecCTCModel
+from nemo.collections.asr.modules.audio_preprocessing import (
+    AudioToMelSpectrogramPreprocessor as NeMoAudioToMelSpectrogramPreprocessor,
+)
+from nemo.collections.asr.parts.preprocessing.features import (
+    FilterbankFeaturesTA as NeMoFilterbankFeaturesTA,
+)
 
+
+class FilterbankFeaturesTA(NeMoFilterbankFeaturesTA):
+    def __init__(self, mel_scale: str = "htk", wkwargs=None, **kwargs):
+        if "window_size" in kwargs:
+            del kwargs["window_size"]
+        if "window_stride" in kwargs:
+            del kwargs["window_stride"]
+
+        super().__init__(**kwargs)
+
+        self._mel_spec_extractor: torchaudio.transforms.MelSpectrogram = (
+            torchaudio.transforms.MelSpectrogram(
+                sample_rate=self._sample_rate,
+                win_length=self.win_length,
+                hop_length=self.hop_length,
+                n_mels=kwargs["nfilt"],
+                window_fn=self.torch_windows[kwargs["window"]],
+                mel_scale=mel_scale,
+                norm=kwargs["mel_norm"],
+                n_fft=kwargs["n_fft"],
+                f_max=kwargs.get("highfreq", None),
+                f_min=kwargs.get("lowfreq", 0),
+                wkwargs=wkwargs,
+            )
+        )
+
+
+class AudioToMelSpectrogramPreprocessor(NeMoAudioToMelSpectrogramPreprocessor):
+    def __init__(self, mel_scale: str = "htk", **kwargs):
+        super().__init__(**kwargs)
+        kwargs["nfilt"] = kwargs["features"]
+        del kwargs["features"]
+        self.featurizer = (
+            FilterbankFeaturesTA(  
+                mel_scale=mel_scale,
+                **kwargs,
+            )
+        )
 
 class STTModel:
-    def __init__(self, model: str, *, fp16_encoder: bool, device: str) -> None:
-        """
-        Initialize the STTModel with the specified model, fp16 encoder flag, and device.
-
-        Args:
-            model (str): The name of the model to load.
-            fp16_encoder (bool): Flag indicating whether to use fp16 encoding.
-            device (str): The device to run the model on (e.g., 'cpu' or 'cuda').
-
-        """
-        self.model = model
-        self.fp16_encoder = fp16_encoder
+    def __init__(self, config_path: str, weights_path: bool, device: str) -> None:
+        self.config_path = config_path
+        self.weights_path = weights_path
         self.device = device
-        self.opt_model = self.load_stt_model()
+        self.model = self.load_stt_model()
 
     def load_stt_model(self):
         """Load the speech-to-text model and compile it for optimal performance."""
-        model = gigaam.load_model(self.model, self.fp16_encoder, self.device)
+        model = EncDecCTCModel.from_config_file(self.config_path)
+        ckpt = torch.load(self.weights_path, map_location="cpu")
+        model.load_state_dict(ckpt, strict=False)
+        model.eval()
+        model = model.to(self.device).half()
         return torch.compile(model, mode="max-autotune")
-
-    def __repr__(self) -> str:
-        """Output the model when print(model)."""
-        return repr(self.opt_model)
-
-if __name__ == "__main__":
-    model = STTModel(model="ctc", fp16_encoder=True, device="mps")
-    print(model)
+    
+    def transcribe(self, audio_path):
+        return self.model.transcribe(audio_path)

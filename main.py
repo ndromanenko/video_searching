@@ -9,6 +9,8 @@ from src.retrieval import Retrieval
 from src.audio_processor import AudioProcessor
 from src.video_processor import VideoProcessor
 from dotenv import load_dotenv
+import json
+import dspy
 
 
 load_dotenv()
@@ -32,17 +34,20 @@ button_style = """
         """
 st.markdown(button_style, unsafe_allow_html=True)
 
-# if not torch.backends.mps.is_available():
-#     device = torch.device("cpu")
-# else:
-#     device = torch.device("mps")
+if not torch.backends.mps.is_available():
+    device = torch.device("cpu")
+else:
+    device = torch.device("mps")
 
 @st.cache_resource
 def load_model():
-    return STTModel(model="ctc", fp16_encoder=True, device="cpu")
+    # return STTModel(model="ctc", fp16_encoder=True, device="cpu")
+    return STTModel("./ctc_model_config.yaml", "./ctc_model_weights.ckpt", device).load_stt_model()
 
 @st.cache_resource
 def load_pipeline():
+    lm = dspy.LM("openai/gpt-4o")
+    dspy.configure(lm=lm)
     return QA()
 
 @st.cache_resource
@@ -58,8 +63,8 @@ def create_retriever():
     return Retrieval(k=10)
 
 @st.cache_resource
-def create_proseccors(video_path: str, model: STTModel, directory: str):
-    return VideoProcessor(video_path=video_path, directory=directory), AudioProcessor(model=model, directory=directory)
+def create_proseccors(_video_path: str, _model: STTModel, _directory: str):
+    return VideoProcessor(video_path=_video_path, directory=_directory), AudioProcessor(model=_model, directory=_directory)
 
 if "retriever" not in st.session_state:
     st.session_state["retriever"] = create_retriever()
@@ -87,19 +92,24 @@ if st.session_state.uploaded_video:
     video_processor, audio_processor = create_proseccors(temp_video_path, model, temp_dir_path)
 
     if st.button("Process Video"):
-        video_processor.process_video(temp_video_path)
+        video_processor.process_video()
         st.session_state.files = os.listdir(temp_dir_path)
         st.success("Chunks processed successfully!")
 
         if st.session_state.transcription is None:
-            transcription = video_processor.transcribe()
+            transcription = audio_processor.transcribe_files()
             st.session_state.transcription = transcription
             st.success("Video trascribation successfully!")
+
+            # print(transcription)
             
             texts = [item["text"] for item in st.session_state.transcription]
             metadatas = [{"time": item["time"]} for item in st.session_state.transcription]
 
-            st.session_state["retriever"](texts=texts, metadatas=metadatas)  
+            # print(texts)
+            # print(metadatas)
+
+            st.session_state["retriever"].add_texts(texts=texts, metadata=metadatas)  
 
         # print(f"Video path: {temp_video_path}")
         
@@ -110,13 +120,13 @@ if st.session_state.uploaded_video:
     if st.session_state.transcription:
 
         # ДЛЯ ТЕСТА, ЕСЛИ НОВАЯ ЛЕКЦИЯ, ТРАНСКРИПЦИИ КОТОРОЙ У МЕНЯ НЕТ
-        # json_data = json.dumps(st.session_state.transcription, indent=2, ensure_ascii=False)
-        # st.download_button(
-        #     label="Download JSON file",
-        #     data=json_data,
-        #     file_name="transcription.json",
-        #     mime="application/json"
-        # )
+        json_data = json.dumps(st.session_state.transcription, indent=2, ensure_ascii=False)
+        st.download_button(
+            label="Download JSON file",
+            data=json_data,
+            file_name="transcription.json",
+            mime="application/json"
+        )
 
         user_query = st.text_input("Enter your query about the video:")
 
