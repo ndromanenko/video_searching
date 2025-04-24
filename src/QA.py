@@ -1,5 +1,8 @@
 import dspy
 from src.retrieval import Retrieval
+from langsmith import traceable
+import streamlit as st
+import re
 
 # class GenerateSearchQuery(dspy.Signature):
 #     question: str = dspy.InputField()
@@ -22,7 +25,8 @@ class QA(dspy.Module):
         super().__init__()
         self.ranker_gen = dspy.ChainOfThought(AnswerWithContext)
 
-    def forward(self, query: str, retrieval: Retrieval):
+    @traceable
+    def forward(self, query: str, retriever: Retrieval):
         """
         Process the input query and retrieve relevant documents.
 
@@ -34,21 +38,44 @@ class QA(dspy.Module):
             The output from the ranker generator based on the context and query.
 
         """
-        relevant_docs = retrieval.search(query=query)
+        for_ranking, mapping, context = self.create_context_answer(query, retriever)
 
-        for_ranking = [doc.page_content for doc in relevant_docs]
+        response = self.ranker_gen(context=context, query=query).ranked_context
 
-        # context = ""
-        # for_ranking = []
-        # for i, doc in enumerate(relevant_docs):
-        #     context += f"{i + 1}. {doc.page_content}\n"
-        #     for_ranking.append(doc.page_content)
-        
-        return self.ranker_gen(context=for_ranking,
-                               query=query)
+        st.write(response)
+        # st.write(len(mapping))
+
+        if not re.findall("[0-9]+", response):
+            return "This information is not in this lecture, try another request"
+
+        answer_index = int(response.split("\n")[0].split(". ")[0]) - 1
+        return mapping[for_ranking[answer_index]]
+    
+    def create_context_answer(self, query, retriever):
+        similarity_content = retriever.search(query)
+    
+        for_ranking = []
+        mapping = dict()
+        context = ""
+
+        for number, doc in enumerate(similarity_content):
+
+            time = int(doc.metadata["time"].split(":")[0])
+            minute = time // 60
+            second = time % 60
+            context = context + f"{number + 1}. " + doc.page_content + "\n"
+
+            if second < 10:
+                for_ranking.append(doc.page_content)
+                mapping[doc.page_content] = f"Время: {minute}:0{second}"
+            else:
+                for_ranking.append(doc.page_content)
+                mapping[doc.page_content] = f"Время: {minute}:{second}"
+
+        return for_ranking, mapping, context
 
 
 if __name__ == "__main__":
     retrieval = Retrieval()
     pipeline = QA()
-    print(pipeline.forward())
+    # print(pipeline.forward())
