@@ -3,6 +3,7 @@ from src.retrieval import Retrieval
 from langsmith import traceable
 import streamlit as st
 import re
+import pandas as pd
 
 # class GenerateSearchQuery(dspy.Signature):
 #     question: str = dspy.InputField()
@@ -42,14 +43,23 @@ class QA(dspy.Module):
 
         response = self.ranker_gen(context=context, query=query).ranked_context
 
-        st.write(response)
-        # st.write(len(mapping))
-
         if not re.findall("[0-9]+", response):
             return "This information is not in this lecture, try another request"
 
         answer_index = int(response.split("\n")[0].split(". ")[0]) - 1
         return mapping[for_ranking[answer_index]]
+    
+    def forward_test(self, query, retriever):
+        _, mapping, _ = self.create_context_answer(query, retriever)
+
+        dataframe = pd.DataFrame(
+            {
+                "Timestamp": mapping.values(),
+                "Transcription": mapping.keys(),
+            }
+        )
+        st.dataframe(dataframe)
+        return mapping
     
     def create_context_answer(self, query, retriever):
         similarity_content = retriever.search(query)

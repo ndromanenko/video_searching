@@ -8,6 +8,10 @@ import openai
 import os
 import tempfile
 from menu import menu_with_redirect
+import pandas as pd
+
+CSV_FILE = "data/queries.csv"
+dataframe = pd.read_csv(CSV_FILE)
 
 
 menu_with_redirect()
@@ -19,7 +23,7 @@ os.getenv("LANGSMITH_ENDPOINT")
 os.getenv("LANGSMITH_API_KEY")
 os.getenv("LANGSMITH_PROJECT")
 
-default_session_state_dict = {"uploaded_file": None, "user_query": None, "transcription": None}
+default_session_state_dict = {"uploaded_file": None, "user_query": None, "transcription": None, "answer_ready": False, "mapping": None}
 
 for key, value in default_session_state_dict.items():
     if key not in st.session_state:
@@ -78,25 +82,42 @@ if st.session_state.uploaded_file:
         transcription = json.load(file)
 
     st.session_state.transcription = transcription
-    st.success("Transcription uploaded successfully!")
+    # st.success("Transcription uploaded successfully!")
 
     texts = [item["text"] for item in st.session_state.transcription]
     metadatas = [{"time": item["time"]} for item in st.session_state.transcription]
     
     st.session_state["retriever"].add_texts(texts=texts, metadata=metadatas)
 
-    if st.session_state.transcription:
+    if st.session_state.transcription and not st.session_state.answer_ready:
 
         user_query = st.text_input("Enter your query about the video:")
 
         if user_query:
-            st.session_state.user_query = user_query 
+            st.session_state.user_query = user_query
+            st.session_state.answer_ready = True
+            st.rerun() 
 
-        if st.session_state.user_query:
+    elif st.session_state.transcription and st.session_state.answer_ready:
+        st.subheader("Your query:")
+        st.write(st.session_state.user_query)
 
-            try:
-                answer = pipeline.forward(user_query, st.session_state["retriever"])
-                st.subheader("Answer:")
-                st.write(answer)
-            except (IndexError, ValueError):
-                st.error("An error occurred during ranking. Please try again.")
+        try:
+            mapping = pipeline.forward_test(st.session_state.user_query, st.session_state["retriever"])
+            if not st.session_state.mapping:
+                st.session_state.mapping = mapping
+
+            correct_answer = st.text_input("Enter the correct answer from those suggested in the table:")
+            if correct_answer and st.session_state.mapping and st.button("Add"):
+                new_row = {"Query": st.session_state.user_query, "Correct_timestamp": list(st.session_state.mapping.values())[int(correct_answer)]}
+                dataframe = pd.concat([dataframe, pd.DataFrame([new_row])], ignore_index=True)
+                dataframe.to_csv(CSV_FILE, index=False)
+                st.success("Added!")
+
+                st.session_state.user_query = None
+                st.session_state.answer_ready = False
+                st.session_state.mapping = None
+                st.rerun()
+
+        except (IndexError, ValueError):
+            st.error("An error occurred during ranking. Please try again.")
