@@ -23,14 +23,10 @@ RUN --mount=type=ssh \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \ 
     uv sync -v --frozen --no-install-project --python 3.11.12
 
-
 COPY ../pyproject.toml ../uv.lock ./
-
-COPY .. .
 
 RUN --mount=type=ssh \ 
     uv sync --frozen --python 3.11.12
 
-# EXPOSE 8051
-
 ENTRYPOINT ["streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# ENTRYPOINT ["tail", "-f", "/dev/null"]
