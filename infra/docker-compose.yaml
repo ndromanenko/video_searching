@@ -1,0 +1,10 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
+    env_file: 
+      - ../.env

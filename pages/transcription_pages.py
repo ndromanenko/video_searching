@@ -66,7 +66,7 @@ def create_retriever():
     return Retrieval(k=10)
 
 @st.cache_resource
-def create_proseccors(_video_path: str, _model: STTModel, _directory: str):
+def create_processors(_video_path: str, _model: STTModel, _directory: str):
     return VideoProcessor(video_path=_video_path, directory=_directory), AudioProcessor(model=_model, directory=_directory)
 
 if "retriever" not in st.session_state:
@@ -92,7 +92,7 @@ if st.session_state.uploaded_video:
         temp_file.write(st.session_state["uploaded_video"].read())
         temp_video_path = temp_file.name
 
-    video_processor, audio_processor = create_proseccors(temp_video_path, model, temp_dir_path)
+    video_processor, audio_processor = create_processors(temp_video_path, model, temp_dir_path)
 
     if st.button("Process Video"):
         video_processor.process_video()
