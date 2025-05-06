@@ -1,0 +1,40 @@
+{
+  "pipeline.ranker_gen.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature": {
+      "instructions": "Context ranking based on query without explanation",
+      "fields": [
+        {
+          "prefix": "Context:",
+          "description": "${context}"
+        },
+        {
+          "prefix": "Query:",
+          "description": "${query}"
+        },
+        {
+          "prefix": "Reasoning: Let's think step by step in order to",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Ranked numbers:",
+          "description": "List of numbers sorted by relevance, in the format:\n1. <number>\n2. <number>\n3. <number>"
+        },
+        {
+          "prefix": "Ranked numbers:",
+          "description": "List of numbers sorted by relevance, in the format:\n1. <number>\n2. <number>\n3. <number>"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12",
+      "dspy": "2.6.10",
+      "cloudpickle": "2.2"
+    }
+  }
+}
