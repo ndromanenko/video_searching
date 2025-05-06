@@ -13,6 +13,5 @@ wheels/
 .env
 model
 test.ipynb
-prompts_train.ipynb
 ctc_model_config.yaml
 ctc_model_weights.ckpt

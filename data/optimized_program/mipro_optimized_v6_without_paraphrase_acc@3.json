@@ -1,0 +1,61 @@
+{
+  "pipeline.ranker_gen.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "query": "\u0423\u043f\u0440\u0430\u0436\u043d\u0435\u043d\u0438\u0435 \u043d\u0430 \u0431\u0438\u043d\u043e\u043c\u0438\u0430\u043b\u044c\u043d\u043e\u0435 \u0440\u0430\u0441\u043f\u0440\u0435\u0434\u0435\u043b\u0435\u043d\u0438\u0435",
+        "ranked_context": "\u0412\u0440\u0435\u043c\u044f: 4:55",
+        "lection": "\u0442\u0435\u043e\u0440\u0432\u0435\u0440_\u0441\u0435\u043c\u0438\u043d\u0430\u0440_6"
+      },
+      {
+        "query": "\u0423\u0441\u043b\u043e\u0432\u0438\u044f \u041a\u043e\u0448\u0438-\u0420\u0438\u043c\u0430\u043d\u0430",
+        "ranked_context": "\u0412\u0440\u0435\u043c\u044f: 55:45",
+        "lection": "\u043c\u0430\u0442\u0430\u043d_\u043b\u0435\u043a\u0446\u0438\u044f_12"
+      },
+      {
+        "query": "\u041e\u043f\u0440\u0435\u0434\u0435\u043b\u0435\u043d\u0438\u0435 \u043a\u043e\u0440\u0440\u0435\u043b\u044f\u0446\u0438\u0438",
+        "ranked_context": "\u0412\u0440\u0435\u043c\u044f: 7:25",
+        "lection": "\u0442\u0435\u043e\u0440\u0432\u0435\u0440_\u043b\u0435\u043a\u0446\u0438\u044f_6"
+      },
+      {
+        "query": "\u041f\u043e\u0434\u0441\u0447\u0451\u0442 \u043a\u0440\u043e\u0441\u0441-\u044d\u043d\u0442\u0440\u043e\u043f\u0438\u0438",
+        "ranked_context": "\u0412\u0440\u0435\u043c\u044f: 61:35",
+        "lection": "\u0442\u0435\u043e\u0440\u0432\u0435\u0440_\u0441\u0435\u043c\u0438\u043d\u0430\u0440_6"
+      }
+    ],
+    "signature": {
+      "instructions": "Given a context and a query, identify and rank the most relevant segments from the context that directly address the query. Provide a detailed reasoning explaining the thought process behind the ranking, and output the segments in a list sorted by relevance. Ensure the output is structured clearly, with reasoning followed by the ranked segments.",
+      "fields": [
+        {
+          "prefix": "Context:",
+          "description": "${context}"
+        },
+        {
+          "prefix": "Query:",
+          "description": "${query}"
+        },
+        {
+          "prefix": "Reasoning: Let's think step by step in order to",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Ranked numbers:",
+          "description": "List of numbers sorted by relevance, in the format:\n1. <number>\n2. <number>\n3. <number>"
+        },
+        {
+          "prefix": "Ranked numbers:",
+          "description": "List of numbers sorted by relevance, in the format:\n1. <number>\n2. <number>\n3. <number>"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12",
+      "dspy": "2.6.10",
+      "cloudpickle": "2.2"
+    }
+  }
+}
