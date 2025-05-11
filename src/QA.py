@@ -1,5 +1,6 @@
 import re
 import pandas as pd
+from collections import OrderedDict
 
 import dspy
 import streamlit as st
@@ -68,10 +69,10 @@ class QA(dspy.Module):
                     if content in mapping:
                         correct_order.append(mapping[content])
                         
-        return correct_order[:3]
+        return list(OrderedDict.fromkeys(correct_order[:3]))
 
     # @traceable
-    def forward(self, query: str) -> list[str]:
+    def forward(self, query: str, retrieval: Retrieval) -> list[str]:
         """
         Process a query through the QA pipeline and return ranked responses.
         
@@ -97,6 +98,72 @@ class QA(dspy.Module):
             attempt += 1
 
         return self._parse_ranked_response(response, for_ranking, mapping)
+
+
+# class QA(dspy.Module):
+#     def __init__(self) -> None:
+#         """
+#         Initialize the QA module with a context ranking generator.
+
+#         This method sets up the ranker generator used for processing queries
+#         and generating answers based on context.
+#         """
+#         super().__init__()
+#         self.paraphrase_gen = dspy.ChainOfThought(ParaphrasingQuery)
+#         self.ranker_gen = dspy.ChainOfThought(AnswerWithContext)
+
+#     # @traceable
+#     def forward(self, query: str, retrieval):
+
+#         response, for_ranking, mapping, p_query = self.get_response(query, retrieval)
+
+#         max_attempts = 5
+#         attempt = 0
+
+#         while (response is None or not re.findall(r"[0-9]+", response)) and attempt < max_attempts:
+#             response, for_ranking, mapping, p_query = self.get_response(p_query, retrieval)
+#             attempt += 1
+        
+#         # logger.info(f"Response: {response}")
+#         sentences = response.split("\n")
+#         correct_order = []
+
+#         for sentence in sentences:
+#             separation = sentence.split(". ")
+#             if len(separation) > 1 and separation[1] != "" and len(separation[1]) <= 2:
+#                 correct_order.append(mapping[for_ranking[int(separation[1]) - 1]])
+    
+#         return correct_order[:3]
+
+#     def get_response(self, query, retrieval):
+#         paraphrase_query = self.paraphrase_gen.predict(query=query).paraphrase
+#         for_ranking, mapping, context = self.create_context_answer(paraphrase_query, retrieval)
+
+#         return self.ranker_gen.predict(context=context, query=paraphrase_query).ranked_context, for_ranking, mapping, paraphrase_query
+    
+#     # @traceable
+#     def create_context_answer(self, query, retrieval):
+#         similarity_content = retrieval.search(query)
+    
+#         for_ranking = []
+#         mapping = dict()
+#         context = ""
+
+#         for number, doc in enumerate(similarity_content):
+
+#             time = int(doc.metadata["time"].split(":")[0])
+#             minute = time // 60
+#             second = time % 60
+#             context = context + f"{number + 1}. " + doc.page_content + "\n"
+
+#             if second < 10:
+#                 for_ranking.append(doc.page_content)
+#                 mapping[doc.page_content] = f"Время: {minute}:0{second}"
+#             else:
+#                 for_ranking.append(doc.page_content)
+#                 mapping[doc.page_content] = f"Время: {minute}:{second}"
+
+#         return for_ranking, mapping, context
 
 
 if __name__ == "__main__":
