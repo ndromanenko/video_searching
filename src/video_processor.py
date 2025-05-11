@@ -1,7 +1,8 @@
 import gc
 import time
-from moviepy.editor import AudioFileClip
+
 import streamlit as st
+from moviepy.editor import AudioFileClip
 
 
 class VideoProcessor:
@@ -14,10 +15,10 @@ class VideoProcessor:
             dir_path (str): The directory where output files will be saved.
 
         """
-        self.video_path = video_path
-        self.directory = directory
+        self.video_path: str = video_path
+        self.directory: str = directory
 
-    def get_chunks(self, args: tuple[str, float, float, int, str]) -> None:
+    def get_chunks(self, args: tuple[str, float, float, str]) -> None:
         """
         Process a chunk of audio from the video file.
 

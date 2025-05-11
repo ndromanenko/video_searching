@@ -1,7 +1,9 @@
 import gc
+from pathlib import Path
+
 import streamlit as st
 import torch
-from pathlib import Path
+
 from src.stt_model import STTModel
 
 
@@ -15,10 +17,10 @@ class AudioProcessor:
             directory (str): The directory where audio files are located.
 
         """
-        self.model = model
-        self.directory = directory
+        self.model: STTModel = model
+        self.directory: str = directory
 
-    def transcribe_files(self) -> list:
+    def transcribe_files(self) -> list[str]:
         """
         Transcribe audio files in the specified directory using the provided model.
 
@@ -36,7 +38,7 @@ class AudioProcessor:
 
         audio_files = [f for f in directory.iterdir() if f.is_file() and not f.name.startswith(".")]
 
-        total_batches = len(audio_files) // batch_size + (1 if len(audio_files) % batch_size > 0 else 0)
+        # total_batches = len(audio_files) // batch_size + (1 if len(audio_files) % batch_size > 0 else 0)
         progress_text = "Second stage in progress. Please wait."
         progress_bar = st.progress(0, text=progress_text)
 
@@ -49,6 +51,9 @@ class AudioProcessor:
             for audio, result in zip(batch_files, results, strict=True):
                 times = audio.stem.split("_")[0]
                 chunks_time_text[times] = result
+
+            progress_ratio = min((i + batch_size) / len(audio_files), 1.0)
+            progress_bar.progress(progress_ratio, text=f"{int(progress_ratio * 100)}% complete")
 
             torch.mps.empty_cache()
             gc.collect()

@@ -2,6 +2,7 @@ import faiss
 from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
+from langchain.schema import Document
 
 
 class Retrieval:
@@ -13,17 +14,17 @@ class Retrieval:
             k: Number of similar documents to retrieve.
             
         """
-        self.embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-        self.index = faiss.IndexFlatL2(len(self.embeddings.embed_query("hello world")))
-        self.retriever = FAISS(
+        self.embeddings: OpenAIEmbeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+        self.index: faiss.IndexFlatL2 = faiss.IndexFlatL2(len(self.embeddings.embed_query("hello world")))
+        self.retriever: FAISS = FAISS(
             index=self.index,
             docstore=InMemoryDocstore({}),
             index_to_docstore_id={},
             embedding_function=self.embeddings
         )
-        self.k = k
+        self.k: int = k
 
-    def add_texts(self, texts: list[str], metadata: list[dict]) -> None:
+    def add_texts(self, texts: list[str], metadata: list[dict[str, str]]) -> None:
         """
         Add texts and their metadata to the retriever.
 
@@ -34,7 +35,7 @@ class Retrieval:
         """
         self.retriever.add_texts(texts=texts, metadatas=metadata)
 
-    def search(self, query: str, filter_criteria: dict | None = None) -> list[tuple[str, float]]:
+    def search(self, query: str, filter_criteria: dict[str, str] | None = None) -> list[Document]:
         """
         Search for similar documents.
 
@@ -43,7 +44,7 @@ class Retrieval:
             filter_criteria: Optional filter criteria.
 
         Returns:
-            List of tuples containing document text and similarity score.
+            List of Document objects containing the search results.
             
         """
         return self.retriever.similarity_search(query=query, k=self.k, filter=filter_criteria)

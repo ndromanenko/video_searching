@@ -1,5 +1,6 @@
 import torch
 import torchaudio
+from typing import Union
 from nemo.collections.asr.models import EncDecCTCModel
 from nemo.collections.asr.modules.audio_preprocessing import (
     AudioToMelSpectrogramPreprocessor as NeMoAudioToMelSpectrogramPreprocessor,
@@ -48,10 +49,10 @@ class AudioToMelSpectrogramPreprocessor(NeMoAudioToMelSpectrogramPreprocessor):
         )
 
 class STTModel:
-    def __init__(self, config_path: str, weights_path: bool, device: str) -> None:
-        self.config_path = config_path
-        self.weights_path = weights_path
-        self.device = device
+    def __init__(self, config_path: str, weights_path: str, device: str) -> None:
+        self.config_path: str = config_path
+        self.weights_path: str = weights_path
+        self.device: str = device
         self.model = self.load_stt_model()
 
     def load_stt_model(self):
@@ -60,8 +61,20 @@ class STTModel:
         ckpt = torch.load(self.weights_path, map_location="cpu")
         model.load_state_dict(ckpt, strict=False)
         model.eval()
-        model = model.to(self.device).half()
+        if self.device == "cuda":
+            model = model.to(self.device).half()
+        else:
+            model = model.to(self.device).float()
         return torch.compile(model, mode="max-autotune")
     
-    def transcribe(self, audio_path):
+    def transcribe(self, audio_path: Union[str, list[str]]) -> str:
+        """
+        Transcribe audio file using the loaded STT model.
+        
+        Args:
+            audio_path: Path to the audio file to transcribe
+            
+        Returns:
+            Transcribed text from the audio file
+        """
         return self.model.transcribe(audio_path)
