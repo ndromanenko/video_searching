@@ -1,15 +1,15 @@
 import streamlit as st
 
 def authenticated_menu():
-    st.sidebar.page_link("main.py", label="Switch mode")
-    if st.session_state.role == "test":
-        st.sidebar.page_link("pages/test_pages.py", label="Testing application")
-    if st.session_state.role == "main":
-        st.sidebar.page_link("pages/transcription_pages.py", label="Transcripting of the lecture")
+    st.sidebar.page_link("main.py", label="Сменить страницу")
+    if st.session_state.role == "Запросы по файлу с транскрипцией":
+        st.sidebar.page_link("pages/test_pages.py", label="Запрос по транскрипции")
+    if st.session_state.role == "Запросы по видео":
+        st.sidebar.page_link("pages/transcription_pages.py", label="Запросы по видео-лекции")
 
 
 def unauthenticated_menu():
-    st.sidebar.page_link("main.py", label="Select mode")
+    st.sidebar.page_link("main.py", label="Выбрать страницу")
 
 
 def menu():

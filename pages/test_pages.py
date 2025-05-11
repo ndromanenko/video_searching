@@ -10,11 +10,24 @@ import tempfile
 from menu import menu_with_redirect
 import pandas as pd
 
-CSV_FILE = "data/queries.csv"
-dataframe = pd.read_csv(CSV_FILE)
-
-
 menu_with_redirect()
+
+st.markdown("""
+###  Анализ видео-лекции по транскрипции
+
+На этой странице вы можете загрузить `.json` файл с транскрипцией видео. Файл должен состоять из пар `"time"` и `"text"`, где:
+
+- `time` — временной промежуток в формате `"секунды_начала:секунды_конца"` (например, `4145:4205`);
+- `text` — фрагмент речи, соответствующий указанному промежутку времени.
+
+После загрузки файла вы можете задавать любое количество вопросов по содержанию лекции. В ответ вы получите **три временных промежутка**, в которых с высокой вероятностью встречается информация, связанная с вашим запросом.
+
+- Первый интервал — наиболее релевантный;
+- Второй и третий — возможные дополнения, с чуть меньшей точностью;
+- Возможна погрешность до **2 минут** относительно точного упоминания.
+
+Этот режим особенно удобен для **тестирования** или работы с уже расшифрованными видео.
+""")
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_KEY")
@@ -23,7 +36,7 @@ os.getenv("LANGSMITH_ENDPOINT")
 os.getenv("LANGSMITH_API_KEY")
 os.getenv("LANGSMITH_PROJECT")
 
-default_session_state_dict = {"uploaded_file": None, "user_query": None, "transcription": None, "answer_ready": False, "mapping": None}
+default_session_state_dict = {"uploaded_file": None, "user_query": None, "transcription": None}
 
 for key, value in default_session_state_dict.items():
     if key not in st.session_state:
@@ -44,11 +57,13 @@ st.markdown(button_style, unsafe_allow_html=True)
 @st.cache_resource
 def load_pipeline():
     lm = dspy.LM("openai/gpt-4o")
-    dspy.configure(lm=lm)
-    return QA()
+    dspy.configure(lm=lm) 
+    program = QA()
+    program.load("/Users/nikitaromanenko/video_course/video_searching/data/optimized_program/mipro_optimized_v6_paraphrase_acc@3.json")
+    return program
 
 def create_retriever():
-    return Retrieval(k=10)
+    return Retrieval(k=15)
 
 @st.cache_resource
 def create_temp_directory():
@@ -65,59 +80,53 @@ if "retriever" not in st.session_state:
 retriever = st.session_state["retriever"]
 pipeline = load_pipeline()
 
-st.header("Upload file for testing")
+st.header("Загрузите файл для работы")
 
-uploaded_file = st.file_uploader("Choose a json file with transcription", type=["json"])
+uploaded_file = st.file_uploader("Выберите файл с транскрипцией", type=["json"])
 
 
 if uploaded_file:
+    content = uploaded_file.read()
+
+    if not content.strip():
+        st.error("Файл пустой или повреждён. Пожалуйста, загрузите корректный JSON.")
+        st.stop()
+
     st.session_state.uploaded_file = uploaded_file
 
-if st.session_state.uploaded_file:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as temp_file:
-        temp_file.write(st.session_state["uploaded_file"].read())
+        temp_file.write(content)
         temp_file_path = temp_file.name
 
-    with open(temp_file_path, "r") as file:
-        transcription = json.load(file)
+    try:
+        with open(temp_file_path, "r") as file:
+            transcription = json.load(file)
+        st.session_state.transcription = transcription
 
-    st.session_state.transcription = transcription
-    # st.success("Transcription uploaded successfully!")
+    except json.JSONDecodeError:
+        st.error("Ошибка при чтении JSON. Проверьте корректность структуры файла.")
+        st.session_state.uploaded_file = None
+        st.stop()
 
     texts = [item["text"] for item in st.session_state.transcription]
     metadatas = [{"time": item["time"]} for item in st.session_state.transcription]
     
     st.session_state["retriever"].add_texts(texts=texts, metadata=metadatas)
 
-    if st.session_state.transcription and not st.session_state.answer_ready:
+    if st.session_state.transcription:
 
-        user_query = st.text_input("Enter your query about the video:")
+        user_query = st.text_input("Введите интересующий вас запрос:")
 
-        if user_query:
+        if user_query and user_query != st.session_state.get("user_query", ""):
             st.session_state.user_query = user_query
-            st.session_state.answer_ready = True
-            st.rerun() 
 
-    elif st.session_state.transcription and st.session_state.answer_ready:
-        st.subheader("Your query:")
-        st.write(st.session_state.user_query)
+            try:
+                mapping = pipeline.forward(user_query, retrieval=st.session_state["retriever"])
 
-        try:
-            mapping = pipeline.forward_test(st.session_state.user_query, st.session_state["retriever"])
-            if not st.session_state.mapping:
-                st.session_state.mapping = mapping
+                st.subheader("Найденные временные промежутки:")
 
-            correct_answer = st.text_input("Enter the correct answer from those suggested in the table:")
-            if correct_answer and st.session_state.mapping and st.button("Add"):
-                new_row = {"Query": st.session_state.user_query, "Correct_timestamp": list(st.session_state.mapping.values())[int(correct_answer)]}
-                dataframe = pd.concat([dataframe, pd.DataFrame([new_row])], ignore_index=True)
-                dataframe.to_csv(CSV_FILE, index=False)
-                st.success("Added!")
+                for i, time_str in enumerate(mapping, 1):
+                    st.markdown(f"**{i}.** {time_str}")
 
-                st.session_state.user_query = None
-                st.session_state.answer_ready = False
-                st.session_state.mapping = None
-                st.rerun()
-
-        except (IndexError, ValueError):
-            st.error("An error occurred during ranking. Please try again.")
+            except (IndexError, ValueError):
+                st.error("Произошла ошибка при ранжировании. Попробуйте еще раз.")
