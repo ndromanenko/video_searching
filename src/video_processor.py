@@ -48,14 +48,16 @@ class VideoProcessor:
         chunk_duration = 50
         chunks = int(duration / chunk_duration) + 1
 
-        progress_text = "First stage in progress. Please wait."
+        progress_text = "Первый этап в процессе. Пожалуйста, подождите."
         progress_bar = st.progress(0, text=progress_text)
 
         for i in range(chunks):
             args = (self.video_path, max(0, i * chunk_duration - 5), min((i + 1) * chunk_duration + 5, duration), self.directory)
             self.get_chunks(args=args)
 
-            progress_bar.progress((i + 1) / chunks, text=progress_text)
+            progress_ratio = min((i + 1) / chunks, 1.0)
+            progress_bar.progress(progress_ratio, text=f"{int(progress_ratio * 100)}% обработано")
+
             time.sleep(0.1)
 
         progress_bar.empty()

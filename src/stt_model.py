@@ -61,10 +61,7 @@ class STTModel:
         ckpt = torch.load(self.weights_path, map_location="cpu")
         model.load_state_dict(ckpt, strict=False)
         model.eval()
-        if self.device == "cuda":
-            model = model.to(self.device).half()
-        else:
-            model = model.to(self.device).float()
+        model = model.to(self.device).half()
         return torch.compile(model, mode="max-autotune")
     
     def transcribe(self, audio_path: Union[str, list[str]]) -> str:

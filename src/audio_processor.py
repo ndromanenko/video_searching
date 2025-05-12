@@ -38,8 +38,7 @@ class AudioProcessor:
 
         audio_files = [f for f in directory.iterdir() if f.is_file() and not f.name.startswith(".")]
 
-        # total_batches = len(audio_files) // batch_size + (1 if len(audio_files) % batch_size > 0 else 0)
-        progress_text = "Second stage in progress. Please wait."
+        progress_text = "Второй этап в процессе. Пожалуйста, подождите."
         progress_bar = st.progress(0, text=progress_text)
 
         for i in range(0, len(audio_files), batch_size):
@@ -53,7 +52,7 @@ class AudioProcessor:
                 chunks_time_text[times] = result
 
             progress_ratio = min((i + batch_size) / len(audio_files), 1.0)
-            progress_bar.progress(progress_ratio, text=f"{int(progress_ratio * 100)}% complete")
+            progress_bar.progress(progress_ratio, text=f"{int(progress_ratio * 100)}% обработано")
 
             torch.mps.empty_cache()
             gc.collect()
