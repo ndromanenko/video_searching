@@ -3,9 +3,9 @@ import streamlit as st
 def authenticated_menu():
     st.sidebar.page_link("main.py", label="Сменить страницу")
     if st.session_state.role == "Запросы по файлу с транскрипцией":
-        st.sidebar.page_link("pages/test_pages.py", label="Запрос по транскрипции")
+        st.sidebar.page_link("pages/json_page.py", label="Запрос по транскрипции")
     if st.session_state.role == "Запросы по видео":
-        st.sidebar.page_link("pages/transcription_pages.py", label="Запросы по видео-лекции")
+        st.sidebar.page_link("pages/video_page.py", label="Запросы по видео-лекции")
 
 
 def unauthenticated_menu():
