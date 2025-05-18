@@ -1,14 +1,19 @@
-.PHONY: run #stop restart
+APP   ?= main.py
+PORT  ?= 8501
+IMAGE ?= video-searching
+
+.PHONY: default run build docker stop
 
 default: run
 
 run:
-	@echo "Запуск Streamlit сервера..."
-	streamlit run main.py
+	@echo "Запуск Streamlit локально: $(APP)"
+	streamlit run $(APP)
 
-# stop:
-# 	@echo "Остановка Streamlit сервера..."
-# 	@pkill -f "streamlit run main.py" || true
+build:
+	@echo "Сборка Docker-образа: $(IMAGE)"
+	docker build -f infra/Dockerfile -t $(IMAGE) .
 
-# restart: stop run
-# 	@echo "Сервер перезапущен"
+docker: build
+	@echo "Запуск контейнера: http://localhost:$(PORT)"
+	docker run --rm -p $(PORT):8501 --name $(IMAGE)-ctr $(IMAGE)
