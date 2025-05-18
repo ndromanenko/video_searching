@@ -1,32 +1,22 @@
-FROM python:3.11-slim
+FROM --platform=linux/amd64 ghcr.io/astral-sh/uv:latest AS uvbin
+FROM --platform=linux/amd64 huggingface/transformers-pytorch-gpu:latest
 
-ENV UV_PROJECT_ENVIRONMENT=/usr/local
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
-    software-properties-common \
-    git \
+WORKDIR /opt/app
+RUN apt-get update && apt-get install -y git ffmpeg build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/ 
+COPY --from=uvbin /uv /usr/local/bin/uv
 
-RUN mkdir -p /root/.ssh && \
-    chmod 700 /root/.ssh && \
-    ssh-keyscan github.com >> /root/.ssh/known_hosts
+COPY pyproject.toml ./
+COPY uv.lock ./
 
+RUN uv sync -v --python 3.11.12 --no-install-project
 
-RUN --mount=type=ssh \ 
-    --mount=type=bind,source=uv.lock,target=uv.lock \ 
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \ 
-    uv sync -v --frozen --no-install-project --python 3.11.12
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
-COPY ../pyproject.toml ../uv.lock ./
+COPY . .
 
-RUN --mount=type=ssh \ 
-    uv sync --frozen --python 3.11.12
-
+ENV PATH="/opt/app/.venv/bin:${PATH}"
+ENV CUDA_VISIBLE_DEVICES=""
 ENTRYPOINT ["streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
-# ENTRYPOINT ["tail", "-f", "/dev/null"]

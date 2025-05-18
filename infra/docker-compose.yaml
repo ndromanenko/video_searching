@@ -1,12 +1,13 @@
 services:
   app:
+    platform: linux/amd64
     build:
-      context: ..
+      context: ..                
       dockerfile: infra/Dockerfile
     ports:
       - "8501:8501"
-    restart: unless-stopped
-    env_file: 
-      - ../.env
+    environment:
+      - CUDA_VISIBLE_DEVICES=
     volumes:
-      - "..:/app"
+      - "..:/workspace"
+    working_dir: /workspace 
