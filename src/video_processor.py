@@ -12,7 +12,7 @@ class VideoProcessor:
 
         Args:
             video_path (str): The path to the video file.
-            dir_path (str): The directory where output files will be saved.
+            directory (str): The directory where output files will be saved.
 
         """
         self.video_path: str = video_path

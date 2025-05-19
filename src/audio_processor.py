@@ -33,7 +33,9 @@ class AudioProcessor:
         """
         directory = Path(self.directory)
 
-        batch_size = 16
+        dev_type = self.model.device if isinstance(self.model.device, str) else self.model.device.type
+        batch_size = 1 if dev_type == "cpu" else 16
+
         chunks_time_text = {}
 
         audio_files = [f for f in directory.iterdir() if f.is_file() and not f.name.startswith(".")]
@@ -54,8 +56,11 @@ class AudioProcessor:
             progress_ratio = min((i + batch_size) / len(audio_files), 1.0)
             progress_bar.progress(progress_ratio, text=f"{int(progress_ratio * 100)}% обработано")
 
-            torch.mps.empty_cache()
-            gc.collect()
+            if dev_type == "cuda":
+                torch.cuda.empty_cache()
+            elif dev_type == "mps":
+                torch.mps.empty_cache()
+            gc.collect() 
 
         progress_bar.empty()  
 

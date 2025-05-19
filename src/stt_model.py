@@ -1,6 +1,5 @@
 import torch
 import torchaudio
-from typing import Union
 from nemo.collections.asr.models import EncDecCTCModel
 from nemo.collections.asr.modules.audio_preprocessing import (
     AudioToMelSpectrogramPreprocessor as NeMoAudioToMelSpectrogramPreprocessor,
@@ -50,21 +49,32 @@ class AudioToMelSpectrogramPreprocessor(NeMoAudioToMelSpectrogramPreprocessor):
 
 class STTModel:
     def __init__(self, config_path: str, weights_path: str, device: str) -> None:
+        """Initialize STT model with configuration, weights and device settings."""
         self.config_path: str = config_path
         self.weights_path: str = weights_path
         self.device: str = device
         self.model = self.load_stt_model()
 
-    def load_stt_model(self):
-        """Load the speech-to-text model and compile it for optimal performance."""
+    def load_stt_model(self) -> EncDecCTCModel:
+        """Load and configure the STT model with appropriate device settings."""
         model = EncDecCTCModel.from_config_file(self.config_path)
         ckpt = torch.load(self.weights_path, map_location="cpu")
         model.load_state_dict(ckpt, strict=False)
         model.eval()
-        model = model.to(self.device).half()
-        return torch.compile(model, mode="max-autotune")
+
+        dev_type = self.device if isinstance(self.device, str) else self.device.type
+
+        if dev_type == "cuda":
+            model = model.to("cuda").half()
+            model = torch.compile(model, mode="reduce-overhead")
+        elif dev_type == "mps":
+            model = model.to("mps").half()
+            model = torch.compile(model, mode="max-autotune")
+        else:                                
+            model = model.float()
+        return model
     
-    def transcribe(self, audio_path: Union[str, list[str]]) -> str:
+    def transcribe(self, audio_path: str | list[str]) -> str:
         """
         Transcribe audio file using the loaded STT model.
         
@@ -74,4 +84,7 @@ class STTModel:
         Returns:
             Transcribed text from the audio file
         """
-        return self.model.transcribe(audio_path)
+        dev_type = self.device if isinstance(self.device, str) else self.device.type
+        batch_size = 1 if dev_type == "cpu" else 4
+        
+        return self.model.transcribe(audio_path, batch_size=batch_size)
