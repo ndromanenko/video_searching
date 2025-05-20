@@ -1,18 +1,18 @@
-import openai
-import os
-import streamlit as st
-import torch 
-from src.stt_model import STTModel
-from src.QA import QA
-import tempfile
-from src.retrieval import Retrieval
-from src.audio_processor import AudioProcessor
-from src.video_processor import VideoProcessor
-from dotenv import load_dotenv
-import json
-import dspy
-from menu import menu_with_redirect
 import hashlib
+import os
+import tempfile
+
+import openai
+import torch
+import streamlit as st
+from dotenv import load_dotenv
+
+from menu import menu_with_redirect
+from src.QA import QA
+from src.audio_processor import AudioProcessor
+from src.retrieval import Retrieval
+from src.stt_model import STTModel
+from src.video_processor import VideoProcessor
 
 menu_with_redirect()
 
@@ -26,17 +26,23 @@ st.markdown("""
 В ответ вы получите до **трёх временных промежутков**, где, скорее всего, встречается нужная информация. Первый вариант — самый точный, следующие — менее уверенные.
 
 Возможна погрешность до **двух минут** относительно точного момента в видео.
+
+Длительность обработки видео **около 5 минут**
 """)
 
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_KEY")
+os.getenv("LANGSMITH_TRACING")
+os.getenv("LANGSMITH_ENDPOINT")
+os.getenv("LANGSMITH_API_KEY")
+os.getenv("LANGSMITH_PROJECT")
 
-default_session_state_dict = {"uploaded_video": None, "user_query": "", "retrieval": None, "mapping": None, 
-                                                            "temp_dir_path": None, "temp_video_path": None,
-                                                            "transcription": None, "model": None, "video_hash": None, "video_processed": False}
+video_session_state_dict = {"uploaded_video": None, "user_query": "", "retrieval": None, "mapping": None, 
+                                                          "temp_dir_path": None, "temp_video_path": None,
+                                                          "transcription": None, "video_hash": None, "video_processed": False}
 
-for key, value in default_session_state_dict.items():
+for key, value in video_session_state_dict.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
@@ -59,13 +65,11 @@ elif torch.backends.mps.is_available():
 else:
     device = torch.device("cpu")
 
+@st.cache_resource(show_spinner="Подгрузка модели")
 def load_model(device):
-    return STTModel("./ctc_model_config.yaml", "./ctc_model_weights.ckpt", device=device).load_stt_model()
+    return STTModel("./ctc_model_config.yaml", "./ctc_model_weights.ckpt", device=device)
 
-@st.cache_resource
-def load_pipeline(path):
-    lm = dspy.LM("openai/gpt-4o")
-    dspy.configure(lm=lm)
+def load_pipeline_main(path):
     program = QA()
     program.load(path)
     return program
@@ -79,10 +83,9 @@ def create_retriever_main():
 def create_processors(_video_path: str, _model: STTModel, _directory: str):
     return VideoProcessor(video_path=_video_path, directory=_directory), AudioProcessor(model=_model, directory=_directory)
 
-pipeline = load_pipeline("/Users/nikitaromanenko/video_course/video_searching/data/optimized_program/mipro_optimized_v6_paraphrase_acc@3.json")
+pipeline = load_pipeline_main("./data/optimized_program/mipro_optimized_v6_paraphrase_acc@3.json")
 
-if st.session_state.get("model") is None:
-    st.session_state.model = load_model(device)
+model = load_model(device)
 
 st.header("Загрузите видеофайл лекции")
 
@@ -117,7 +120,7 @@ if st.session_state.uploaded_video:
     if not st.session_state.video_processed:
         try:
             st.session_state["temp_dir_path"] = create_temp_directory()
-            video_processor, audio_processor = create_processors(st.session_state.temp_video_path, st.session_state.model, st.session_state.temp_dir_path)
+            video_processor, audio_processor = create_processors(st.session_state.temp_video_path, model, st.session_state.temp_dir_path)
             video_processor.process_video()
 
             transcription = audio_processor.transcribe_files()
@@ -134,17 +137,6 @@ if st.session_state.uploaded_video:
         except Exception as e:
             st.error(f"Произошла ошибка при обработке видео: {e}")
             st.stop()
-    
-    #ДЛЯ СКАЧКИ
-    # if st.session_state.get("transcription"):
-    #     json_data = json.dumps(st.session_state.transcription, indent=2, ensure_ascii=False)
-    #     st.download_button(
-    #         label="Скачать транскрипт в JSON",
-    #         data=json_data,
-    #         file_name="transcription.json",
-    #         mime="application/json"
-    #     )
-        # if st.session_state.video_processed and st.session_state.transcription:
 
     if st.session_state.transcription and st.session_state.video_processed:
         user_query = st.text_input("Введите интересующий вас запрос по видео:", key="user_query")

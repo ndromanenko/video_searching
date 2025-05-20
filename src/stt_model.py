@@ -66,10 +66,9 @@ class STTModel:
 
         if dev_type == "cuda":
             model = model.to("cuda").half()
-            model = torch.compile(model, mode="reduce-overhead")
+            model = torch.compile(model, mode="max-autotune")
         elif dev_type == "mps":
             model = model.to("mps").half()
-            model = torch.compile(model, mode="max-autotune")
         else:                                
             model = model.float()
         return model
